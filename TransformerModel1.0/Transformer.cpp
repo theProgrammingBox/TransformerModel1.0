@@ -10,8 +10,9 @@ Transformer::Transformer(uint64_t TOKEN_DIMENTIONS, uint64_t QUERY_DIMENTIONS, u
 	keyWeights = new float[TOKEN_DIMENTIONS * QUERY_DIMENTIONS * NUM_HEADS];
 	valueWeights = new float[TOKEN_DIMENTIONS * QUERY_DIMENTIONS * NUM_HEADS];
 	concatWeights = new float[QUERY_DIMENTIONS * NUM_HEADS * TOKEN_DIMENTIONS];
-	ffWeights1 = new float[TOKEN_DIMENTIONS * LINEAR_FEED_DIMENTIONS];
-	ffWeights2 = new float[LINEAR_FEED_DIMENTIONS * TOKEN_DIMENTIONS];
+	hiddenWeights = new float[TOKEN_DIMENTIONS * LINEAR_FEED_DIMENTIONS];
+	outputWeights = new float[LINEAR_FEED_DIMENTIONS * TOKEN_DIMENTIONS];
+	RandomizeWeights();
 }
 
 Transformer::~Transformer() {
@@ -19,8 +20,8 @@ Transformer::~Transformer() {
 	delete[] keyWeights;
 	delete[] valueWeights;
 	delete[] concatWeights;
-	delete[] ffWeights1;
-	delete[] ffWeights2;
+	delete[] hiddenWeights;
+	delete[] outputWeights;
 	for (int i = 0; i < numRuns; i++) {
 		delete[] querysList[i];
 		delete[] keysList[i];
@@ -47,6 +48,23 @@ void Transformer::run(float* input) {
 	LinearHiddenFeedForward();
 	LinearOutputFeedForward(input);
 	//LayerNorm();
+}
+
+void Transformer::RandomizeWeights() {
+	for (int i = 0; i < TOKEN_DIMENTIONS * QUERY_DIMENTIONS * NUM_HEADS; i++) {
+		queryWeights[i] = normalRand();
+		keyWeights[i] = normalRand();
+		valueWeights[i] = normalRand();
+	}
+	for (int i = 0; i < QUERY_DIMENTIONS * NUM_HEADS * TOKEN_DIMENTIONS; i++) {
+		concatWeights[i] = normalRand();
+	}
+	for (int i = 0; i < TOKEN_DIMENTIONS * LINEAR_FEED_DIMENTIONS; i++) {
+		hiddenWeights[i] = normalRand();
+	}
+	for (int i = 0; i < LINEAR_FEED_DIMENTIONS * TOKEN_DIMENTIONS; i++) {
+		outputWeights[i] = normalRand();
+	}
 }
 
 void Transformer::AllocateMemory() {
@@ -157,3 +175,9 @@ void Transformer::LinearOutputFeedForward(float* input) {
 		outputLayer[numRuns][i] += input[i];
 	}
 }
+
+/*
+TODO:
+Make layerAddAndNorm a general function?
+Make SoftMax a general function?
+*/
