@@ -12,7 +12,9 @@ class Transformer {
 public:
 	Transformer(uint64_t TOKEN_DIMENTIONS, uint64_t QUERY_DIMENTIONS, uint64_t LINEAR_FEED_DIMENTIONS, uint64_t NUM_HEADS);
 	~Transformer();
-	void run(float* input);			// input is a pointer to an array of TOKEN_DIMENTIONS floats
+	void run(float* input, float* output);			// input is a pointer to an array of TOKEN_DIMENTIONS floats
+	void exportParameters(string fileName);
+	void importParameters(string fileName);
 
 private:
 	uint64_t TOKEN_DIMENTIONS;			// number of dimentions in each input token
@@ -45,5 +47,5 @@ private:
 	void ConcatenateHeads(float* input);
 	void LayerNorm();
 	void LinearHiddenFeedForward();
-	void LinearOutputFeedForward(float* input);
+	void LinearOutputFeedForward(float* input, float* output);
 };

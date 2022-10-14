@@ -36,7 +36,7 @@ Transformer::~Transformer() {
 	}
 }
 
-void Transformer::run(float* input) {
+void Transformer::run(float* input, float* output) {
 	AllocateMemory();
 	PositionalEncoding(input);
 	GenerateQueryKeyValue(input);
@@ -46,8 +46,24 @@ void Transformer::run(float* input) {
 	ConcatenateHeads(input);
 	//LayerNorm();	// TODO: Implement LayerNorm for the concatenated output and the output of the feed forward network
 	LinearHiddenFeedForward();
-	LinearOutputFeedForward(input);
+	LinearOutputFeedForward(input, output);
 	//LayerNorm();
+}
+
+void Transformer::exportParameters(string fileName) {
+	ofstream file(fileName, ios::binary);
+	file.write((char*)&TOKEN_DIMENTIONS, sizeof(uint64_t));
+	file.write((char*)&QUERY_DIMENTIONS, sizeof(uint64_t));
+	file.write((char*)&LINEAR_FEED_DIMENTIONS, sizeof(uint64_t));
+	file.write((char*)&NUM_HEADS, sizeof(uint64_t));
+	file.write((char*)&numRuns, sizeof(uint64_t));
+	file.write((char*)queryWeights, sizeof(float) * TOKEN_DIMENTIONS * QUERY_DIMENTIONS * NUM_HEADS);
+	file.write((char*)keyWeights, sizeof(float) * TOKEN_DIMENTIONS * QUERY_DIMENTIONS * NUM_HEADS);
+	file.write((char*)valueWeights, sizeof(float) * TOKEN_DIMENTIONS * QUERY_DIMENTIONS * NUM_HEADS);
+	file.write((char*)concatWeights, sizeof(float) * QUERY_DIMENTIONS * NUM_HEADS * TOKEN_DIMENTIONS);
+	file.write((char*)hiddenWeights, sizeof(float) * TOKEN_DIMENTIONS * LINEAR_FEED_DIMENTIONS);
+	file.write((char*)outputWeights, sizeof(float) * LINEAR_FEED_DIMENTIONS * TOKEN_DIMENTIONS);
+	file.close();
 }
 
 void Transformer::RandomizeWeights() {
@@ -166,13 +182,14 @@ void Transformer::LinearHiddenFeedForward() {
 	}
 }
 
-void Transformer::LinearOutputFeedForward(float* input) {
+void Transformer::LinearOutputFeedForward(float* input, float* output) {
 	for (int i = 0; i < TOKEN_DIMENTIONS; i++) {
 		outputLayer[numRuns][i] = 0;
 		for (int j = 0; j < LINEAR_FEED_DIMENTIONS; j++) {
 			outputLayer[numRuns][i] += hiddenLayer[numRuns][j] * outputWeights[j * TOKEN_DIMENTIONS + i];
 		}
 		outputLayer[numRuns][i] += input[i];
+		output[i] = outputLayer[numRuns][i];
 	}
 }
 

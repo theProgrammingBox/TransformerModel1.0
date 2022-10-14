@@ -1,11 +1,17 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <string>
 #include <chrono>
+#include <fstream>
 
 using std::cout;
 using std::endl;
 using std::vector;
+using std::string;
+using std::ofstream;
+using std::ios;
+using std::ifstream;
 
 using std::chrono::duration_cast;
 using std::chrono::nanoseconds;
