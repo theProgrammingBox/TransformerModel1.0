@@ -30,18 +30,23 @@ Transformer::~Transformer() {
 		}
 		delete[] headValues[i];
 		delete[] concatenatedOutput[i];
-		delete[] output3[i];
-		delete[] output4[i];
+		delete[] hiddenLayer[i];
+		delete[] outputLayer[i];
 	}
 }
 
 void Transformer::run(float* input) {
 	AllocateMemory();
+	PositionalEncoding(input);
 	GenerateQueryKeyValue(input);
 	MyQueryDotAllKeys();
 	Softmax();
 	GetHeadValues();
-	ConcatenateHeads();
+	ConcatenateHeads(input);
+	//LayerNorm();	// TODO: Implement LayerNorm for the concatenated output and the output of the feed forward network
+	LinearHiddenFeedForward();
+	LinearOutputFeedForward(input);
+	//LayerNorm();
 }
 
 void Transformer::AllocateMemory() {
@@ -54,8 +59,19 @@ void Transformer::AllocateMemory() {
 	}
 	headValues.push_back(new float[QUERY_DIMENTIONS * NUM_HEADS]);
 	concatenatedOutput.push_back(new float[TOKEN_DIMENTIONS]);
-	output3.push_back(new float[LINEAR_FEED_DIMENTIONS]);
-	output4.push_back(new float[TOKEN_DIMENTIONS]);
+	hiddenLayer.push_back(new float[LINEAR_FEED_DIMENTIONS]);
+	outputLayer.push_back(new float[TOKEN_DIMENTIONS]);
+}
+
+void Transformer::PositionalEncoding(float* input) {
+	for (int i = 0; i < TOKEN_DIMENTIONS; i++) {
+		if (i & 1) {
+			input[i] += cos(numRuns / pow(10000.0f, (i - 1) / TOKEN_DIMENTIONS));
+		}
+		else {
+			input[i] += sin(numRuns / pow(10000.0f, i / TOKEN_DIMENTIONS));
+		}
+	}
 }
 
 void Transformer::GenerateQueryKeyValue(float* input) {
@@ -79,7 +95,7 @@ void Transformer::MyQueryDotAllKeys() {
 			for (int k = 0; k < QUERY_DIMENTIONS; k++) {
 				scoresList[numRuns][i][j] += querysList[numRuns][j * QUERY_DIMENTIONS + k] * keysList[i][j * QUERY_DIMENTIONS + k];
 			}
-			scoresList[numRuns][i][j] /= sqrt(QUERY_DIMENTIONS);
+			scoresList[numRuns][i][j] /= sqrt(QUERY_DIMENTIONS);	// not sure if it is token dimentions or query dimentions
 		}
 	}
 }
@@ -107,11 +123,37 @@ void Transformer::GetHeadValues() {
 	}
 }
 
-void Transformer::ConcatenateHeads() {
+void Transformer::ConcatenateHeads(float* input) {
 	for (int i = 0; i < TOKEN_DIMENTIONS; i++) {
 		concatenatedOutput[numRuns][i] = 0;
 		for (int j = 0; j < QUERY_DIMENTIONS * NUM_HEADS; j++) {
 			concatenatedOutput[numRuns][i] += headValues[numRuns][j] * concatWeights[j * TOKEN_DIMENTIONS + i];
 		}
+		concatenatedOutput[numRuns][i] += input[i];
+	}
+}
+
+void Transformer::LayerNorm() {	// not yet sure how it works
+	/*for (int i = 0; i < TOKEN_DIMENTIONS; i++) {
+		concatenatedOutput[numRuns][i] = concatenatedOutput[numRuns][i] / sqrt(concatenatedOutput[numRuns][i] * concatenatedOutput[numRuns][i] + 1);
+	}*/
+}
+
+void Transformer::LinearHiddenFeedForward() {
+	for (int i = 0; i < LINEAR_FEED_DIMENTIONS; i++) {
+		hiddenLayer[numRuns][i] = 0;
+		for (int j = 0; j < TOKEN_DIMENTIONS; j++) {
+			hiddenLayer[numRuns][i] += concatenatedOutput[numRuns][j] * hiddenWeights[j * LINEAR_FEED_DIMENTIONS + i];
+		}
+	}
+}
+
+void Transformer::LinearOutputFeedForward(float* input) {
+	for (int i = 0; i < TOKEN_DIMENTIONS; i++) {
+		outputLayer[numRuns][i] = 0;
+		for (int j = 0; j < LINEAR_FEED_DIMENTIONS; j++) {
+			outputLayer[numRuns][i] += hiddenLayer[numRuns][j] * outputWeights[j * TOKEN_DIMENTIONS + i];
+		}
+		outputLayer[numRuns][i] += input[i];
 	}
 }
