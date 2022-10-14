@@ -3,6 +3,11 @@
 
 class Transformer {
 public:
+	Transformer(uint64_t TOKEN_DIMENTIONS, uint64_t QUERY_DIMENTIONS, uint64_t LINEAR_FEED_DIMENTIONS, uint64_t NUM_HEADS);
+	~Transformer();
+	void run(float* input);			// input is a pointer to an array of TOKEN_DIMENTIONS floats
+
+private:
 	uint64_t TOKEN_DIMENTIONS;			// number of dimentions in each input token
 	uint64_t QUERY_DIMENTIONS;			// number of dimentions in each query, key, and value
 	uint64_t LINEAR_FEED_DIMENTIONS;	// number of dimentions in the linear feed forward layer
@@ -17,12 +22,16 @@ public:
 	vector<float*> querysList;			// List of current and past querys, [QUERY_DIMENTIONS * NUM_HEADS], number of runs elements
 	vector<float*> keysList;			// List of current and past keys, [QUERY_DIMENTIONS * NUM_HEADS], number of runs elements
 	vector<float*> valuesList;			// List of current and past values, [QUERY_DIMENTIONS * NUM_HEADS], number of runs elements
-	vector<float*> ScoresList;			// List of scores for each key given the current query, [NUM_HEADS], number of runs elements
-	vector<float*> output1;				// List of the sum of all values multiplied by their respective scores, [QUERY_DIMENTIONS * NUM_HEADS], number of runs elements
-	vector<float*> output2;				// List of the output of the concatination linear feed forward layer, [TOKEN_DIMENTIONS], number of runs elements
+	vector<vector<float*>> scoresList;	// List of (list of scores for each key given the current query, [NUM_HEADS], number of runs elements), number of runs elements
+	vector<float*> headValues;				// List of the sum of all values multiplied by their respective scores, [QUERY_DIMENTIONS * NUM_HEADS], number of runs elements
+	vector<float*> concatenatedOutput;				// List of the output of the concatination linear feed forward layer, [TOKEN_DIMENTIONS], number of runs elements
 	vector<float*> output3;				// List of the output of the first linear feed forward layer, [LINEAR_FEED_DIMENTIONS], number of runs elements
 	vector<float*> output4;				// List of the output of the final linear feed forward layer, [TOKEN_DIMENTIONS], number of runs elements
 
-	Transformer(uint64_t TOKEN_DIMENTIONS, uint64_t QUERY_DIMENTIONS, uint64_t LINEAR_FEED_DIMENTIONS, uint64_t NUM_HEADS);
-	~Transformer();
+	void AllocateMemory();
+	void GenerateQueryKeyValue(float* input);
+	void MyQueryDotAllKeys();
+	void Softmax();
+	void GetHeadValues();
+	void ConcatenateHeads();
 };
